@@ -67,6 +67,14 @@ class MicrowaveStateMachine
 		COOKING
 	};
 	
+	enum action
+	{
+		SET_TIMER_ACTION,
+		START_ACTION,
+		INTERRUPT_COOKING_ACTION,
+		END_COOKING_ACTION
+	};
+
 	class TransMapKey
 	{
 		state st;
@@ -93,6 +101,7 @@ class MicrowaveStateMachine
 	};
 
 	typedef Transitions<event, state, MicrowaveStateMachine> Trans;
+	typedef void (MicrowaveStateMachine::* ACTION)();
 
 	std::atomic_uchar timerValue;
 	state currentState;
@@ -102,14 +111,14 @@ class MicrowaveStateMachine
 	CallbackFunc* callbackFunc;
 	std::mutex m;
 
-	//void addState(state s, event e, state nextState);
-	void cast(void(*f)()) {}
-
 	void handleEvent(event e);
 	void setTimerAction() {timer->set(timerValue);}
 	void startAction() {timer->start();}
 	void interruptCookingAction() {timerValue = 0; timer->set(timerValue); timer->stop();}
 	void endCookingAction() {timerValue = 0; timer->set(timerValue); if(callbackFunc) (*callbackFunc)();}
+
+	void addTransition(state s, event e, state nextState, ACTION action);
+	ACTION getAction(action act);
 
 	public:
 

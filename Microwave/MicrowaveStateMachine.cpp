@@ -1,31 +1,53 @@
 #include "stdafx.h"
 #include "MicrowaveStateMachine.h"
 
+typedef void (MicrowaveStateMachine::* ACTION)();
+
 MicrowaveStateMachine::MicrowaveStateMachine()
-{typedef void (MicrowaveStateMachine::* ACTION)(void);
+{
 	timerValue = 0;
 	callbackFunc = NULL;
-	currentState = IDLE_CLOSE_DOOR;
+	currentState = IDLE_CLOSE_DOOR; 
 	callback = new CallbackTimer<MicrowaveStateMachine, event>(this, m, &MicrowaveStateMachine::handleEvent, TIME_OUT);
 	timer = new Timer<CallbackTimer<MicrowaveStateMachine, event>>(callback);
+	
+	addTransition(IDLE_CLOSE_DOOR, OPEN_DOOR, IDLE_OPEN_DOOR, NULL);
+	addTransition(IDLE_OPEN_DOOR, CLOSE_DOOR, IDLE_CLOSE_DOOR, NULL);
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_CLOSE_DOOR, OPEN_DOOR), Trans(IDLE_OPEN_DOOR, NULL)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_OPEN_DOOR, CLOSE_DOOR), Trans(IDLE_CLOSE_DOOR, NULL)));
+	addTransition(IDLE_CLOSE_DOOR, SET_TIMER, TIMER_CLOSE_DOOR, getAction(SET_TIMER_ACTION));
+	addTransition(TIMER_OPEN_DOOR, SET_TIMER, TIMER_OPEN_DOOR, getAction(SET_TIMER_ACTION));
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_CLOSE_DOOR, SET_TIMER), Trans(TIMER_CLOSE_DOOR, setTimerAction)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_OPEN_DOOR, SET_TIMER), Trans(TIMER_OPEN_DOOR, setTimerAction)));
+	addTransition(TIMER_CLOSE_DOOR, SET_TIMER, TIMER_CLOSE_DOOR, getAction(SET_TIMER_ACTION));
+	addTransition(TIMER_OPEN_DOOR, SET_TIMER, TIMER_OPEN_DOOR, getAction(SET_TIMER_ACTION));
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_CLOSE_DOOR, SET_TIMER), Trans(TIMER_CLOSE_DOOR, setTimerAction)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_OPEN_DOOR, SET_TIMER), Trans(TIMER_OPEN_DOOR, setTimerAction)));
+	addTransition(TIMER_CLOSE_DOOR, OPEN_DOOR, TIMER_OPEN_DOOR, NULL);
+	addTransition(TIMER_OPEN_DOOR, CLOSE_DOOR, TIMER_CLOSE_DOOR, NULL);
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_CLOSE_DOOR, OPEN_DOOR), Trans(TIMER_OPEN_DOOR, NULL)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_OPEN_DOOR, CLOSE_DOOR), Trans(TIMER_CLOSE_DOOR, NULL)));
+	addTransition(TIMER_CLOSE_DOOR, START, COOKING, getAction(START_ACTION));
+	addTransition(COOKING, OPEN_DOOR, TIMER_OPEN_DOOR, getAction(INTERRUPT_COOKING_ACTION));
+	addTransition(COOKING, SET_TIMER, TIMER_CLOSE_DOOR, getAction(INTERRUPT_COOKING_ACTION));
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_CLOSE_DOOR, START), Trans(COOKING, &MicrowaveStateMachine::startAction)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(COOKING, OPEN_DOOR), Trans(TIMER_OPEN_DOOR, &MicrowaveStateMachine::interruptCookingAction)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(COOKING, SET_TIMER), Trans(TIMER_CLOSE_DOOR, &MicrowaveStateMachine::interruptCookingAction)));
+	addTransition(COOKING, TIME_OUT, IDLE_CLOSE_DOOR, getAction(END_COOKING_ACTION));
+}
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(COOKING, TIME_OUT), Trans(IDLE_CLOSE_DOOR, &MicrowaveStateMachine::endCookingAction)));
+void MicrowaveStateMachine::addTransition(state s, event e, state nextState, ACTION action)
+{
+	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(s, e), Trans(nextState, action)));
+}
+
+ACTION MicrowaveStateMachine::getAction(action act)
+{
+	switch (act)
+	{
+		case SET_TIMER_ACTION:
+			return &MicrowaveStateMachine::setTimerAction;
+		case START_ACTION:
+			return &MicrowaveStateMachine::startAction;
+		case INTERRUPT_COOKING_ACTION:
+			return &MicrowaveStateMachine::interruptCookingAction;
+		case END_COOKING_ACTION:
+			return &MicrowaveStateMachine::endCookingAction;
+	}
 }
 
 void MicrowaveStateMachine::handleEvent(event e)
