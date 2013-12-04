@@ -102,6 +102,9 @@ class MicrowaveStateMachine
 	CallbackFunc* callbackFunc;
 	std::mutex m;
 
+	//void addState(state s, event e, state nextState);
+	void cast(void(*f)()) {}
+
 	void handleEvent(event e);
 	void setTimerAction() {timer->set(timerValue);}
 	void startAction() {timer->start();}

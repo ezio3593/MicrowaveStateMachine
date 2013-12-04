@@ -2,21 +2,21 @@
 #include "MicrowaveStateMachine.h"
 
 MicrowaveStateMachine::MicrowaveStateMachine()
-{
+{typedef void (MicrowaveStateMachine::* ACTION)(void);
 	timerValue = 0;
 	callbackFunc = NULL;
 	currentState = IDLE_CLOSE_DOOR;
 	callback = new CallbackTimer<MicrowaveStateMachine, event>(this, m, &MicrowaveStateMachine::handleEvent, TIME_OUT);
 	timer = new Timer<CallbackTimer<MicrowaveStateMachine, event>>(callback);
-	
+
 	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_CLOSE_DOOR, OPEN_DOOR), Trans(IDLE_OPEN_DOOR, NULL)));
 	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_OPEN_DOOR, CLOSE_DOOR), Trans(IDLE_CLOSE_DOOR, NULL)));
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_CLOSE_DOOR, SET_TIMER), Trans(TIMER_CLOSE_DOOR, &MicrowaveStateMachine::setTimerAction)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_OPEN_DOOR, SET_TIMER), Trans(TIMER_OPEN_DOOR, &MicrowaveStateMachine::setTimerAction)));
+	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_CLOSE_DOOR, SET_TIMER), Trans(TIMER_CLOSE_DOOR, setTimerAction)));
+	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(IDLE_OPEN_DOOR, SET_TIMER), Trans(TIMER_OPEN_DOOR, setTimerAction)));
 
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_CLOSE_DOOR, SET_TIMER), Trans(TIMER_CLOSE_DOOR, &MicrowaveStateMachine::setTimerAction)));
-	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_OPEN_DOOR, SET_TIMER), Trans(TIMER_OPEN_DOOR, &MicrowaveStateMachine::setTimerAction)));
+	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_CLOSE_DOOR, SET_TIMER), Trans(TIMER_CLOSE_DOOR, setTimerAction)));
+	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_OPEN_DOOR, SET_TIMER), Trans(TIMER_OPEN_DOOR, setTimerAction)));
 
 	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_CLOSE_DOOR, OPEN_DOOR), Trans(TIMER_OPEN_DOOR, NULL)));
 	transMap.insert(std::pair<TransMapKey, Trans>(TransMapKey(TIMER_OPEN_DOOR, CLOSE_DOOR), Trans(TIMER_CLOSE_DOOR, NULL)));
